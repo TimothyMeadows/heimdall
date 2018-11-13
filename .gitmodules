@@ -1,0 +1,3 @@
+[submodule "movidius"]
+	path = movidius
+	url = https://github.com/TimothyMeadows/movidius
