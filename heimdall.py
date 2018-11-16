@@ -4,7 +4,7 @@ import time
 import argparse
 import numpy
 import cv2
-from movidius import movidius
+import movidius
 import imutils
 from imutils.video import VideoStream
 
