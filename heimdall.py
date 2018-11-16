@@ -217,7 +217,6 @@ def main():
             frame, mobilenet), ARGS.object_match_threshold, frame.shape)
         detections_range = range(0, detections['num_detections'])
         classifications = {}
-        fps = 0
 
         frames += 1
         for i in detections_range:
