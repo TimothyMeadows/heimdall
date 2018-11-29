@@ -10,7 +10,7 @@ from imutils.video import VideoStream
 
 arguments = argparse.ArgumentParser(
     description="Heimdall AI Camera PoC using Intel® Movidius™ Neural Compute Stick.")
-    
+
 arguments.add_argument('-s', '--source', type=int,
                        default=0,
                        help="Index of the video device. ex. 0 for /dev/video0")
@@ -26,15 +26,6 @@ arguments.add_argument('-mn', '--mobile_net', type=str,
 arguments.add_argument('-ml', '--mobile_net_labels', type=str,
                        default='labels.txt',
                        help="Path to labels file for mobile net.")
-arguments.add_argument('-fm', '--face_match_threshold', type=float,
-                       default=0.9,
-                       help="Percentage required for a face net detection match in range of (0.0 - 2.0) with 0.0 being a perfect match.")
-arguments.add_argument('-fo', '--face_origin', type=str,
-                       default='origin.jpg',
-                       help="Origin (face to match) image to use for face net detection")
-arguments.add_argument('-fn', '--face_net', type=str,
-                       default='facenet_celeb_ncs.graph',
-                       help="Path to the face net neural network graph file.")
 arguments.add_argument('-fps', '--show_fps', type=bool,
                        default=False,
                        help="Show fps your getting after processing.")
@@ -161,48 +152,13 @@ def inferance_objects(src, graph):
 
     return output
 
-# src is a cv2.imread
-# graph is the loaded facenet graph
-
-
-def inferance_face(src, graph):
-    processed = whiten(bgr2rgb(resize(src, (200, 200))))
-    graph.LoadTensor(processed.astype(numpy.float16), None)
-    output, t = graph.GetResult()
-
-    return output
-
-# inferance1 is the output of an image inferance
-# inferance2 is the output of an image inferance
-
-
-def inferance_differance(inferance1, inferance2):
-    if (len(inferance1) != len(inferance2)):
-        print('Size mismatch between inferances!')
-        return 100
-
-    total = 0
-    inferance_range = range(0, len(inferance1))
-    for index in inferance_range:
-        diff = numpy.square(inferance1[index] - inferance2[index])
-        total += diff
-
-    return total
-
 
 def main():
-    devices = movidius.attach_multi()
-    if (devices is None or len(devices) < 2):
-        print("Unable to find a movidius device!")
-        quit()
-
-    origin = cv2.imread(ARGS.face_origin)
-    mobilenet = movidius.allocate("mobilenet", ARGS.mobile_net, devices[0])
-    facenet = movidius.allocate("facenet", ARGS.face_net, devices[1])
+    device = movidius.attach(0)
+    mobilenet = movidius.allocate("mobilenet", ARGS.mobile_net, device)
     video = VideoStream(src=ARGS.source, usePiCamera=ARGS.pi_cam,
                         resolution=(640, 480), framerate=30).start()
 
-    origin_inferance = inferance_face(origin, facenet)
     time.sleep(2.0)
     run_time = time.time()
 
@@ -218,24 +174,11 @@ def main():
         detections_range = range(0, detections['num_detections'])
         classifications = {}
 
-        frames += 1
         for i in detections_range:
-            class_id = detections.get('detection_classes_' + str(i))
-            label = None
-            color = (255, 255, 0)
+            classifications[i] = (detections.get(
+                'detection_classes_' + str(i)), None, (255, 255, 0))
 
-            if (class_id == CLASS_PERSON):
-                facial_inferance = inferance_face(frame, facenet)
-                facial_drift = inferance_differance(
-                    origin_inferance, facial_inferance)
-                label = "face score: " + str(round(facial_drift, 2))
-
-                color = (0, 0, 255)
-                if (facial_drift < ARGS.face_match_threshold):
-                    color = (0, 255, 0)
-
-            classifications[i] = (class_id, label, color)
-
+        frames += 1
         if (time.time() - run_time) > 1:
             if (ARGS.show_fps):
                 print("FPS: " + str(frames / (time.time() - run_time)))
@@ -249,7 +192,7 @@ def main():
         if key == ord("q"):
             break
 
-    movidius.deattach_multi()
+    movidius.deattach(0)
     print("Deattached from movidius device.")
     cv2.destroyAllWindows()
 
