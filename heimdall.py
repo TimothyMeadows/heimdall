@@ -64,12 +64,6 @@ LABELS = [line.rstrip('\n')
 def bgr2rgb(src):
     return cv2.cvtColor(src, cv2.COLOR_BGR2RGB)
 
-# src is a cv2.imread to resize
-
-
-def resize(src, size=(320, 240)):
-    return cv2.resize(src, size)
-
 
 # src is a cv2.imread you want to crop
 # x is the starting x position
@@ -82,31 +76,11 @@ def crop(src, x, y, width, height):
     return src[y:y+height, x:x+width]
 
 
-# src is the image to whiten
-
-
-def whiten(src):
-    image = src.copy()
-    mean = numpy.mean(image)
-    deviation = numpy.std(image)
-    adjusted = numpy.maximum(deviation, 1.0 / numpy.sqrt(image.size))
-
-    return numpy.multiply(numpy.subtract(image, mean), 1 / adjusted)
-
-# src is the image to darken
-
-
-def darken(src):
-    image = src.copy()
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    return gray
-
 # src is the image to scale
 
 
 def subscale(src):
-    image = cv2.resize(src, tuple([300, 300])).astype(numpy.float16)
-    return (image - numpy.float16([127.5, 127.5, 127.5])) * 0.00789
+    return (cv2.resize(src, tuple([300, 300])).astype(numpy.float16) - numpy.float16([127.5, 127.5, 127.5])) * 0.00789
 
 
 # image is a cv2.imread
@@ -155,10 +129,16 @@ def inferance_objects(src, graph):
 
 def main():
     device = movidius.attach(0)
+    if (device is None):
+        print("No movidius device was found.")
+        exit()
+
+    print("Attached to movidius device at " + device)
     mobilenet = movidius.allocate("mobilenet", ARGS.mobile_net, device)
     video = VideoStream(src=ARGS.source, usePiCamera=ARGS.pi_cam,
                         resolution=(640, 480), framerate=30).start()
 
+    print("Waiting for camera to start...")
     time.sleep(2.0)
     run_time = time.time()
 
@@ -181,7 +161,7 @@ def main():
         frames += 1
         if (time.time() - run_time) > 1:
             if (ARGS.show_fps):
-                print("FPS: " + str(frames / (time.time() - run_time)))
+                print("[FPS] " + str(frames / (time.time() - run_time)))
 
             frames = 0
             run_time = time.time()
@@ -193,7 +173,7 @@ def main():
             break
 
     movidius.deattach(0)
-    print("Deattached from movidius device.")
+    print("Deattached from movidius device at " + device)
     cv2.destroyAllWindows()
 
 
