@@ -9,12 +9,12 @@ import imutils
 from imutils.video import VideoStream
 
 arguments = argparse.ArgumentParser(
-    description="Heimdall AI Camera PoC using Intel Movidius Neural Compute Stick.")
+    description="Heimdall AI Camera PoC using Intel Movidius Neural Compute Stick 1.")
 
 arguments.add_argument('-s', '--source', type=int,
                        default=0,
                        help="Index of the video device. ex. 0 for /dev/video0")
-arguments.add_argument('-pi', '--pi_cam', type=bool,
+arguments.add_argument('-pi', '--pi', type=bool,
                        default=False,
                        help="Enable raspberry pi cam support. Only use this if your sure you need it.")
 arguments.add_argument('-t', '--object_match_threshold', type=float,
@@ -135,8 +135,8 @@ def main():
 
     print("Attached to movidius device at " + device)
     mobilenet = movidius.allocate("mobilenet", ARGS.mobile_net, device)
-    video = VideoStream(src=ARGS.source, usePiCamera=ARGS.pi_cam,
-                        resolution=(640, 480), framerate=30).start()
+    video = VideoStream(src=ARGS.source, usePiCamera=ARGS.pi,
+                        resolution=(320, 240), framerate=30).start()
 
     print("Waiting for camera to start...")
     time.sleep(2.0)
