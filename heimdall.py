@@ -9,7 +9,7 @@ import imutils
 from imutils.video import VideoStream
 
 arguments = argparse.ArgumentParser(
-    description="Heimdall AI Camera PoC using Intel® Movidius™ Neural Compute Stick.")
+    description="Heimdall AI Camera PoC using Intel Movidius Neural Compute Stick.")
 
 arguments.add_argument('-s', '--source', type=int,
                        default=0,
@@ -17,16 +17,16 @@ arguments.add_argument('-s', '--source', type=int,
 arguments.add_argument('-pi', '--pi_cam', type=bool,
                        default=False,
                        help="Enable raspberry pi cam support. Only use this if your sure you need it.")
-arguments.add_argument('-om', '--object_match_threshold', type=float,
+arguments.add_argument('-t', '--object_match_threshold', type=float,
                        default=0.9,
                        help="Percentage required for a mobile net object detection match in range of (0.0 - 1.0).")
-arguments.add_argument('-mn', '--mobile_net', type=str,
+arguments.add_argument('-m', '--mobile_net', type=str,
                        default='ssd_mobilenet_ncs.graph',
                        help="Path to the mobile net neural network graph file.")
-arguments.add_argument('-ml', '--mobile_net_labels', type=str,
+arguments.add_argument('-l', '--mobile_net_labels', type=str,
                        default='labels.txt',
                        help="Path to labels file for mobile net.")
-arguments.add_argument('-fps', '--show_fps', type=bool,
+arguments.add_argument('-fps', '--fps', type=bool,
                        default=False,
                        help="Show fps your getting after processing.")
 ARGS = arguments.parse_args()
@@ -142,6 +142,7 @@ def main():
     time.sleep(2.0)
     run_time = time.time()
 
+    print("Running...")
     frames = 0
     while True:
         frame = video.read()
@@ -158,13 +159,13 @@ def main():
             classifications[i] = (detections.get(
                 'detection_classes_' + str(i)), None, (255, 255, 0))
 
-        frames += 1
-        if (time.time() - run_time) > 1:
-            if (ARGS.show_fps):
+        if (ARGS.fps):
+            frames += 1
+            
+            if (time.time() - run_time) > 1:
                 print("[FPS] " + str(frames / (time.time() - run_time)))
-
-            frames = 0
-            run_time = time.time()
+                frames = 0
+                run_time = time.time()
 
         overlay_detections(frame, detections, classifications)
         cv2.imshow("Camera", frame)
