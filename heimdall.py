@@ -2,6 +2,8 @@ import sys
 import os
 import time
 import argparse
+import textwrap
+import smtplib
 import numpy
 import cv2
 import movidius
@@ -29,6 +31,21 @@ arguments.add_argument('-l', '--mobile_net_labels', type=str,
 arguments.add_argument('-fps', '--fps', type=bool,
                        default=False,
                        help="Show fps your getting after processing.")
+arguments.add_argument('-alerts', '--alerts', type=str,
+                       default=None,
+                       help="Classification list that triggers alerts.")
+arguments.add_argument('-email', '--email', type=str,
+                       default=None,
+                       help="Email address to send email alerts too.")
+arguments.add_argument('-email_server', '--email_server', type=str,
+                       default="localhost",
+                       help="Email server to send email alerts from.")
+arguments.add_argument('-email_username', '--email_username', type=str,
+                       default=None,
+                       help="Email server username to send email alerts with.")
+arguments.add_argument('-email_password', '--email_password', type=str,
+                       default=None,
+                       help="Email server password to send email alerts with.")
 ARGS = arguments.parse_args()
 
 # classification(s) to search for based on labels.txt
@@ -55,8 +72,30 @@ CLASS_TRAIN = 19
 CLASS_TV_MONITOR = 20
 
 # classification labels
+
+
 LABELS = [line.rstrip('\n')
           for line in open(ARGS.mobile_net_labels) if line != 'classes\n']
+
+# subject for the alert
+# text for the alert
+
+
+def alert_smtp(subject, text):
+    message = textwrap.dedent("""\
+        From: %s
+        To: %s
+        Subject: %s
+        %s
+        """ % ("alerts@heimdall.py", ", ".join(ARGS.email), "Heimdall Alert: " + subject, text))
+
+    server = smtplib.SMTP(ARGS.email_server)
+    if (ARGS.email_username is not None and ARGS.email_password is not None):
+        server.starttls()
+        server.login(ARGS.email_username, ARGS.email_password)
+
+    server.sendmail("alerts@heimdall.py", ARGS.email, message)
+    server.quit()
 
 # src is the source image to convert
 
@@ -156,12 +195,22 @@ def main():
         classifications = {}
 
         for i in detections_range:
-            classifications[i] = (detections.get(
-                'detection_classes_' + str(i)), None, (255, 255, 0))
+            class_id = detections.get('detection_classes_' + str(i))
+            label = None
+            color = (255, 255, 0)
+
+            if (ARGS.alerts is not None):
+                alerts = ARGS.alerts.replace(" ", "").split(",")
+                for alert in alerts:
+                    if (class_id == alert):
+                        color = (0, 255, 0)
+                        alert_smtp(class_id, class_id + " was found.")
+
+            classifications[i] = (class_id, label, color)
 
         if (ARGS.fps):
             frames += 1
-            
+
             if (time.time() - run_time) > 1:
                 print("[FPS] " + str(frames / (time.time() - run_time)))
                 frames = 0
