@@ -17,10 +17,10 @@ arguments.add_argument('-s', '--source', type=int,
 arguments.add_argument('-pi', '--pi', type=bool,
                        default=False,
                        help="Enable raspberry pi cam support. Only use this if your sure you need it.")
-arguments.add_argument('-t', '--object_match_threshold', type=float,
+arguments.add_argument('-m', '--match_threshold', type=float,
                        default=0.9,
                        help="Percentage required for a mobile net object detection match in range of (0.0 - 1.0).")
-arguments.add_argument('-m', '--mobile_net', type=str,
+arguments.add_argument('-g', '--mobile_net_graph', type=str,
                        default='ssd_mobilenet_ncs.graph',
                        help="Path to the mobile net neural network graph file.")
 arguments.add_argument('-l', '--mobile_net_labels', type=str,
@@ -134,7 +134,7 @@ def main():
         exit()
 
     print("Attached to movidius device at " + device)
-    mobilenet = movidius.allocate("mobilenet", ARGS.mobile_net, device)
+    mobilenet = movidius.allocate("mobilenet", ARGS.mobile_net_graph, device)
     video = VideoStream(src=ARGS.source, usePiCamera=ARGS.pi,
                         resolution=(320, 240), framerate=30).start()
 
@@ -151,7 +151,7 @@ def main():
             break
 
         detections = movidius.ssd(inferance_objects(
-            frame, mobilenet), ARGS.object_match_threshold, frame.shape)
+            frame, mobilenet), ARGS.match_threshold, frame.shape)
         detections_range = range(0, detections['num_detections'])
         classifications = {}
 
