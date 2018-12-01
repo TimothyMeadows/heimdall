@@ -204,7 +204,7 @@ def main():
                 for alert in alerts:
                     if (class_id == alert):
                         color = (0, 255, 0)
-                        alert_smtp(class_id, class_id + " was found.")
+                        #alert_smtp(class_id, class_id + " was found.")
 
             classifications[i] = (class_id, label, color)
 
