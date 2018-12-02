@@ -89,6 +89,7 @@ def alert_smtp(subject, text):
         %s
         """ % ("alerts@heimdall.py", ", ".join(ARGS.email), "Heimdall Alert: " + subject, text))
 
+    print(message)
     server = smtplib.SMTP(ARGS.email_server)
     if (ARGS.email_username is not None and ARGS.email_password is not None):
         server.starttls()
@@ -180,6 +181,7 @@ def main():
     print("Waiting for camera to start...")
     time.sleep(2.0)
     run_time = time.time()
+    alert_time = time.time()
 
     print("Running...")
     frames = 0
@@ -204,7 +206,10 @@ def main():
                 for alert in alerts:
                     if (class_id == alert):
                         color = (0, 255, 0)
-                        #alert_smtp(class_id, class_id + " was found.")
+
+                        if (time.time() - alert_time) > 120:
+                            alert_smtp(class_id, class_id + " was found.")
+                            alert_time = time.time()
 
             classifications[i] = (class_id, label, color)
 
